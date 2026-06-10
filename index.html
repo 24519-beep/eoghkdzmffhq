@@ -231,7 +231,7 @@
         }
     });
 
-    // 🔊 TTS (Text-to-Speech) 기능 정밀 진단 완료
+    // 🔊 TTS (Text-to-Speech) 기능
     function speakText(text) {
         window.speechSynthesis.cancel(); // 이전 소리 초기화로 중첩 방지
         const u = new SpeechSynthesisUtterance("긴급 상황 발생. " + text);
@@ -258,7 +258,7 @@
         document.getElementById('user-action').value = "";
     }
 
-    // 🌐 [수정 적용] 안정적인 v1 프로토콜 기반의 Gemini API 호출 로직
+    // 🌐 [수정 적용 완료] 안정적인 v1beta 및 -latest 모델 기반의 Gemini API 호출 로직
     document.getElementById('btnStartMission').addEventListener('click', async () => {
         const apiKey = localStorage.getItem('saved_gemini_key') || keyInput.value;
         if (!apiKey) return alert("Gemini API 키를 상단에 먼저 입력해 주세요!");
@@ -268,8 +268,8 @@
 
         const prompt = "너는 전투기 관제탑 시스템이야. 조종사에게 발생하는 극도로 위험한 상황(예: 미사일 록온, 엔진 화재, 미확인 기체 급습 등)을 전투기 영화 대사처럼 다급하고 짧게 딱 '1문장'으로 경고해줘.";
         
-        // 🔥 v1beta에서 정식 안정 버전인 v1 엔드포인트로 전면 교체했습니다.
-        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        // 🔥 최신 오류 해결을 위해 가장 호환성이 높은 모델명(gemini-1.5-flash-latest)으로 수정 완료
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(apiUrl, {
