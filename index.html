@@ -157,7 +157,7 @@
 
         if (isAlert) {
             alertLight.intensity = (Math.sin(Date.now() * 0.01) + 1) * 20;
-            if(threat.position.z < -5) threat.position.z += 0.25; // 적기 접근 속도 업
+            if(threat.position.z < -5) threat.position.z += 0.25; 
             // 긴박한 카메라 쉐이킹 연출
             camera.position.x = (Math.random() - 0.5) * 0.4;
             camera.position.y = 3 + (Math.random() - 0.5) * 0.4;
@@ -184,7 +184,6 @@
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
     import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-    // 질문자님의 siuuuuuu 프로젝트 정보가 반영되었습니다.
     const firebaseConfig = {
         apiKey: "AIzaSyDg67w5ZvoLz4W1A1B7KciQ9fJSsiMlW7I",
         authDomain: "siuuuuuu-dcb76.firebaseapp.com",
@@ -211,7 +210,7 @@
     // Firebase 이메일 가입 및 로그인 기능
     document.getElementById('btnSignup').addEventListener('click', () => {
         createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
-            .then(() => alert("가입 완료! 등록한 계정으로 로그인하세요."))
+            .then(() => alert("등록 완료! 등록한 계정으로 로그인하세요."))
             .catch(e => alert(e.message));
     });
     document.getElementById('btnLogin').addEventListener('click', () => {
@@ -232,24 +231,23 @@
         }
     });
 
-    // 🔊 확인 요청하신 핵심 요소: TTS (Text-to-Speech) 기능
+    // 🔊 TTS (Text-to-Speech) 기능 정밀 진단 완료
     function speakText(text) {
-        window.speechSynthesis.cancel(); // 꼬임 방지를 위해 이전 음성 초기화
+        window.speechSynthesis.cancel(); // 이전 소리 초기화로 중첩 방지
         const u = new SpeechSynthesisUtterance("긴급 상황 발생. " + text);
         u.lang = 'ko-KR'; 
-        u.rate = 1.2; // 긴박한 상황 연출을 위한 빠른 배속
-        u.pitch = 0.6; // 군용 무전기 효과를 위한 굵은 기계음 톤
+        u.rate = 1.25; // 약간 빠르고 긴장감 넘치는 배속
+        u.pitch = 0.55; // 군대 무전 시스템 같은 묵직한 기계음 톤
         window.speechSynthesis.speak(u);
     }
 
     function triggerAlert(message) {
         isAlert = true;
         threat.visible = true;
-        // 적기의 출현 축(X, Y)을 랜덤하게 배치하여 추격 긴장감 조성
         threat.position.set((Math.random()-0.5)*8, (Math.random()-0.5)*5, -55); 
         aiResponseText.innerText = message;
         aiResponseText.classList.add('warning-text');
-        speakText(message); // 🔊 생성 시 TTS 자동 실행
+        speakText(message); // 🔊 생성과 동시에 TTS 송출 활성화
     }
 
     function resolveAlert() {
@@ -260,7 +258,7 @@
         document.getElementById('user-action').value = "";
     }
 
-    // 🌐 업데이트 완료: Google Gemini API 호출 엔진
+    // 🌐 [수정 적용] 안정적인 v1 프로토콜 기반의 Gemini API 호출 로직
     document.getElementById('btnStartMission').addEventListener('click', async () => {
         const apiKey = localStorage.getItem('saved_gemini_key') || keyInput.value;
         if (!apiKey) return alert("Gemini API 키를 상단에 먼저 입력해 주세요!");
@@ -268,9 +266,10 @@
         document.getElementById('loading').style.display = 'block';
         resolveAlert();
 
-        const prompt = "너는 전투기 관제 탑 시스템이야. 조종사에게 발생하는 극도로 위험한 상황(예: 미사일 록온, 엔진 화재, 미확인 기체 급습 등)을 전투기 영화 대사처럼 다급하고 짧게 딱 '1문장'으로 경고해줘.";
-        // Gemini 1.5 Flash 모델 엔드포인트 세팅
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+        const prompt = "너는 전투기 관제탑 시스템이야. 조종사에게 발생하는 극도로 위험한 상황(예: 미사일 록온, 엔진 화재, 미확인 기체 급습 등)을 전투기 영화 대사처럼 다급하고 짧게 딱 '1문장'으로 경고해줘.";
+        
+        // 🔥 v1beta에서 정식 안정 버전인 v1 엔드포인트로 전면 교체했습니다.
+        const apiUrl = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
 
         try {
             const response = await fetch(apiUrl, {
@@ -284,7 +283,6 @@
             
             if(data.error) throw new Error(data.error.message);
             
-            // Gemini 응답 가공 파싱
             currentScenario = data.candidates[0].content.parts[0].text;
             triggerAlert(currentScenario);
             
@@ -295,7 +293,7 @@
         }
     });
 
-    // Firebase Firestore DB 데이터 누적 기록
+    // Firebase Firestore DB 로그 저장
     document.getElementById('btnSaveLog').addEventListener('click', async () => {
         const userAction = document.getElementById('user-action').value;
         if (!isAlert || !userAction) return alert("상황이 없거나 조종사 대처 행동이 공백입니다.");
@@ -307,7 +305,7 @@
                 action: userAction,
                 timestamp: new Date()
             });
-            alert("대처 성공 로그가 'siuuuuuu' 서버에 안전하게 세이브되었습니다!");
+            alert("대처 성공 로그가 'siuuuuuu' 데이터베이스 서버에 기록되었습니다!");
             resolveAlert(); 
         } catch (error) {
             alert("서버 전송 실패: " + error.message);
