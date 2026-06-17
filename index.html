@@ -3,47 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D AI 전투기 시뮬레이터</title>
+    <title>3D AI 전투기 시뮬레이터 - 시네마틱 오버드라이브</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; color: #0f0; }
-        /* 3D 캔버스 배경 */
+        body { margin: 0; overflow: hidden; background-color: #000; font-family: 'Courier New', Courier, monospace; color: #0f0; user-select: none; }
         #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1; }
-        /* 반투명 HUD 조종석 패널 */
-        .ui-container { position: absolute; top: 20px; left: 20px; width: 400px; max-height: 90vh; overflow-y: auto; background: rgba(0, 20, 0, 0.7); border: 2px solid #0f0; border-radius: 10px; padding: 20px; box-shadow: 0 0 15px #0f0; z-index: 10; backdrop-filter: blur(5px); }
-        h1, h2, h3 { text-align: center; margin-top: 0; text-shadow: 0 0 5px #0f0; }
-        input, button { width: 100%; padding: 10px; margin: 8px 0; box-sizing: border-box; background: rgba(0,0,0,0.8); color: #0f0; border: 1px solid #0f0; font-family: inherit; transition: 0.3s; }
-        button { cursor: pointer; font-weight: bold; }
-        button:hover { background: #0f0; color: #000; }
+        
+        /* HUD 및 UI 디자인 강화 */
+        .ui-container { position: absolute; top: 20px; left: 20px; width: 420px; max-height: 90vh; overflow-y: auto; background: rgba(0, 15, 0, 0.75); border: 2px solid rgba(0, 255, 0, 0.5); border-radius: 12px; padding: 25px; box-shadow: 0 0 20px rgba(0, 255, 0, 0.3), inset 0 0 15px rgba(0,255,0,0.1); z-index: 10; backdrop-filter: blur(8px); }
+        .ui-container::-webkit-scrollbar { width: 8px; }
+        .ui-container::-webkit-scrollbar-thumb { background: #0f0; border-radius: 4px; }
+        
+        h1, h2, h3 { text-align: center; margin-top: 0; text-transform: uppercase; letter-spacing: 2px; text-shadow: 0 0 10px #0f0; }
+        h1 { border-bottom: 2px solid #0f0; padding-bottom: 10px; }
+        
+        input, button { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: rgba(0,0,0,0.8); color: #0f0; border: 1px solid #0f0; border-radius: 4px; font-family: inherit; font-size: 14px; transition: all 0.3s ease; }
+        input:focus { outline: none; box-shadow: 0 0 10px #0f0; background: rgba(0, 50, 0, 0.8); }
+        button { cursor: pointer; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; }
+        button:hover { background: #0f0; color: #000; box-shadow: 0 0 15px #0f0; }
+        
         #app-section, #loading { display: none; }
-        .log-box { border: 1px dashed #0f0; padding: 10px; margin-top: 10px; min-height: 60px; background: rgba(0,0,0,0.5); }
-        .warning-text { color: #f33; font-weight: bold; text-shadow: 0 0 5px red; }
+        .log-box { border: 1px dashed rgba(0,255,0,0.5); padding: 15px; margin-top: 15px; min-height: 80px; background: rgba(0,0,0,0.6); border-radius: 5px; position: relative; }
+        .log-box::before { content: 'COMM LINK'; position: absolute; top: -10px; left: 10px; background: #000; padding: 0 5px; font-size: 12px; }
+        
+        /* 비상 상황 시 UI 붉은색 점멸 효과 */
+        .alert-mode { border-color: #f00 !important; color: #f00 !important; text-shadow: 0 0 10px #f00 !important; box-shadow: 0 0 20px rgba(255,0,0,0.5), inset 0 0 15px rgba(255,0,0,0.2) !important; }
+        .alert-mode h1, .alert-mode h2 { text-shadow: 0 0 10px #f00; border-color: #f00; }
+        .alert-mode input, .alert-mode button { border-color: #f00; color: #f00; }
+        .alert-mode button:hover { background: #f00; color: #fff; box-shadow: 0 0 15px #f00; }
+        .alert-mode .log-box { border-color: #f00; background: rgba(50,0,0,0.6); }
+        
+        .warning-text { color: #fff; font-weight: bold; text-shadow: 0 0 8px #f00; font-size: 1.1em; line-height: 1.4; }
+        
+        /* 피격/위험 화면 오버레이 */
+        #damage-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, transparent 50%, rgba(255,0,0,0.8) 100%); opacity: 0; pointer-events: none; z-index: 5; transition: opacity 0.2s; }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
-    <div class="ui-container">
-        <h1>✈️ 3D 탑건 시뮬레이터</h1>
+    <div id="damage-overlay"></div>
+    
+    <div class="ui-container" id="main-ui">
+        <h1>✈️ 3D TOPGUN C.I.C</h1>
         
         <div id="auth-section">
-            <h2>파일럿 인증</h2>
-            <input type="email" id="email" placeholder="이메일 입력 (예: pilot@test.com)">
-            <input type="password" id="password" placeholder="비밀번호 (6자리 이상)">
-            <button id="btnLogin">로그인</button>
-            <button id="btnSignup">신규 등록</button>
+            <h2>파일럿 생체 인증</h2>
+            <input type="email" id="email" placeholder="CALLSIGN (Email)">
+            <input type="password" id="password" placeholder="SECURITY CODE (Password)">
+            <button id="btnLogin">접속 (LOGIN)</button>
+            <button id="btnSignup" style="border-color: #0aa; color: #0aa;">신규 파일럿 등록</button>
         </div>
 
         <div id="app-section">
-            <h2>📡 시스템 가동 중</h2>
-            <p id="user-info" style="text-align: center; color: #aaa; margin: 5px 0;"></p>
-            <button id="btnStartMission" style="background:#300; border-color:red; color:red; margin-top:15px;">⚠️ 실시간 위기 상황 생성 (ChatGPT)</button>
-            <p id="loading" style="text-align:center; color:yellow;">ChatGPT가 전황을 연산 중입니다...</p>
+            <h2>📡 전투 관제 시스템</h2>
+            <p id="user-info" style="text-align: center; color: #aaa; margin: 5px 0; font-size: 12px;"></p>
+            
+            <button id="btnStartMission" style="background:rgba(50,0,0,0.8); border: 2px solid red; color:red; margin-top:20px; font-size: 16px; text-shadow: 0 0 5px red;">
+                ⚠️ 즉각 위기 상황 발생 (AI 연산)
+            </button>
+            <p id="loading" style="text-align:center; color:#ff0; font-weight:bold; animation: blink 1s infinite;">>>> 전황 데이터 수신 및 적기 분석 중... <<<</p>
+            
             <div class="log-box">
-                <strong>[관제탑 무전 통신]:</strong>
-                <p id="ai-response">비행 상태 정상. 목표 지점으로 순항 중.</p>
+                <strong style="color: #0f0;">[관제탑 무전 (AWACS)]:</strong>
+                <p id="ai-response">시스템 스탠바이. 비행 상태 정상. 목표 지점으로 순항 중.</p>
             </div>
-            <input type="text" id="user-action" placeholder="대처 행동 입력 (예: 회피 기동 및 플레어 사출)">
-            <button id="btnSaveLog">상황 대처 완료 및 로그 저장</button>
-            <button id="btnLogout" style="border-color:#555; color:#555;">로그아웃</button>
+            
+            <input type="text" id="user-action" placeholder="조종사 긴급 대처 행동 (예: 회피, 플레어 사출)">
+            <button id="btnSaveLog" style="background: rgba(0,30,0,0.8);">상황 돌파 및 블랙박스 기록</button>
+            <button id="btnLogout" style="border-color:#555; color:#555; margin-top: 20px;">시스템 종료 (LOGOUT)</button>
         </div>
     </div>
 
@@ -57,91 +83,319 @@
     </script>
 
     <script type="module">
-        // ----------------------------------------------------
-        // [0] Google Apps Script 웹 앱 연결 URL 설정
-        // ----------------------------------------------------
-        // 💡 여기에 1단계에서 복사한 본인의 Apps Script 웹 앱 URL 주소를 붙여넣으세요!
+        // ============================================================================
+        // [0] Google Apps Script (ChatGPT 연동)
+        // ============================================================================
+        // 💡 주의: 본인의 Apps Script URL을 반드시 여기에 넣으세요!
         const GAS_WEB_APP_URL = "https://script.google.com/macros/s/---여기에_본인의_웹앱_ID를_넣으세요---/exec";
 
-        // ----------------------------------------------------
-        // [1] Three.js를 활용한 그래픽 엔진 구현
-        // ----------------------------------------------------
+        // ============================================================================
+        // [1] 극한의 Three.js 그래픽 엔진 & 시네마틱 연출 구현
+        // ============================================================================
         import * as THREE from 'three';
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
         const container = document.getElementById('canvas-container');
+        const overlay = document.getElementById('damage-overlay');
+        const uiContainer = document.getElementById('main-ui');
+        
+        // 1. 씬 & 안개 설정
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x000000, 0.02);
-        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-        camera.position.set(0, 3, -10);
-        camera.lookAt(0, 0, 5);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        scene.fog = new THREE.FogExp2(0x050510, 0.015); // 깊이감 있는 어두운 푸른 안개
+        
+        // 2. 카메라 설정
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 2000);
+        camera.position.set(0, 4, -15);
+        camera.lookAt(0, 0, 10);
+        
+        // 3. 렌더러 설정
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping; // 영화 같은 색감 보정
+        renderer.toneMappingExposure = 1.0;
         container.appendChild(renderer.domElement);
+
+        // 4. 시네마틱 Post-Processing (빛 번짐/블룸 효과)
+        const composer = new EffectComposer(renderer);
+        const renderPass = new RenderPass(scene, camera);
+        composer.addPass(renderPass);
+        const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+        bloomPass.threshold = 0.2;
+        bloomPass.strength = 0.8; // 기본 블룸 강도
+        bloomPass.radius = 0.5;
+        composer.addPass(bloomPass);
 
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
+        controls.maxPolarAngle = Math.PI / 2 - 0.1; // 땅 밑으로 못 내려가게
 
-        const ambientLight = new THREE.AmbientLight(0x404040, 2);
+        // 5. 조명 시스템
+        const ambientLight = new THREE.AmbientLight(0x223344, 2.5);
         scene.add(ambientLight);
-        const directionalLight = new THREE.DirectionalLight(0xffffff, 2);
-        directionalLight.position.set(5, 10, -5);
+        const directionalLight = new THREE.DirectionalLight(0xaaccff, 3);
+        directionalLight.position.set(10, 20, -10);
         scene.add(directionalLight);
-
+        
+        // 경고등 (평소엔 꺼져있음)
         const alertLight = new THREE.PointLight(0xff0000, 0, 100);
         alertLight.position.set(0, 5, 0);
         scene.add(alertLight);
 
+        // ==========================================
+        // ✈️ 고퀄리티 전투기(Stealth Fighter) 조립
+        // ==========================================
         const jetGroup = new THREE.Group();
-        const jetMaterial = new THREE.MeshStandardMaterial({ color: 0x334455, metalness: 0.8, roughness: 0.2 });
-        const body = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.5, 4, 32), jetMaterial);
-        body.rotation.x = Math.PI / 2;
-        const nose = new THREE.Mesh(new THREE.ConeGeometry(0.5, 1.5, 32), jetMaterial);
-        nose.position.z = 2.75;
+        
+        // 재질 정의
+        const hullMat = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.9, roughness: 0.3 }); // 검은 스텔스 동체
+        const glassMat = new THREE.MeshStandardMaterial({ color: 0x00ffff, metalness: 1.0, roughness: 0.0, transparent: true, opacity: 0.7 });
+        const engineMat = new THREE.MeshBasicMaterial({ color: 0xff4400 });
+
+        // 메인 동체
+        const bodyGeo = new THREE.BoxGeometry(1.5, 0.8, 6);
+        const body = new THREE.Mesh(bodyGeo, hullMat);
+        body.position.z = 0;
+        
+        // 기수 (Nose)
+        const noseGeo = new THREE.ConeGeometry(0.75, 3, 4);
+        const nose = new THREE.Mesh(noseGeo, hullMat);
         nose.rotation.x = Math.PI / 2;
-        const wings = new THREE.Mesh(new THREE.BoxGeometry(6, 0.1, 1.5), jetMaterial);
-        wings.position.set(0, 0, -0.5);
-        const tail = new THREE.Mesh(new THREE.BoxGeometry(0.2, 1.5, 1), jetMaterial);
-        tail.position.set(0, 0.75, -1.5);
-        jetGroup.add(body, nose, wings, tail);
+        nose.rotation.y = Math.PI / 4;
+        nose.position.z = 4.5;
+        
+        // 조종석 (Cockpit)
+        const cockpitGeo = new THREE.CapsuleGeometry(0.5, 1.5, 4, 8);
+        const cockpit = new THREE.Mesh(cockpitGeo, glassMat);
+        cockpit.rotation.x = Math.PI / 2;
+        cockpit.position.set(0, 0.5, 2);
+        
+        // 주 날개 (Delta Wings)
+        const wingShape = new THREE.Shape();
+        wingShape.moveTo(0, 0);
+        wingShape.lineTo(4, -2);
+        wingShape.lineTo(4, -4);
+        wingShape.lineTo(0, -3);
+        const extrudeSettings = { depth: 0.1, bevelEnabled: true, bevelThickness: 0.05, bevelSize: 0.05, bevelSegments: 2 };
+        const wingGeo = new THREE.ExtrudeGeometry(wingShape, extrudeSettings);
+        
+        const rightWing = new THREE.Mesh(wingGeo, hullMat);
+        rightWing.rotation.x = Math.PI / 2;
+        rightWing.position.set(0.5, 0, 1);
+        
+        const leftWing = new THREE.Mesh(wingGeo, hullMat);
+        leftWing.rotation.x = Math.PI / 2;
+        leftWing.scale.x = -1; // 좌우 반전
+        leftWing.position.set(-0.5, 0, 1);
+
+        // 수직 꼬리날개 (Twin Tails)
+        const tailGeo = new THREE.BoxGeometry(0.1, 1.2, 1.5);
+        const rightTail = new THREE.Mesh(tailGeo, hullMat);
+        rightTail.position.set(0.6, 0.8, -2.5);
+        rightTail.rotation.z = -0.3;
+        
+        const leftTail = new THREE.Mesh(tailGeo, hullMat);
+        leftTail.position.set(-0.6, 0.8, -2.5);
+        leftTail.rotation.z = 0.3;
+
+        // 엔진 배기구
+        const exhaustGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.5, 16);
+        const rightExhaust = new THREE.Mesh(exhaustGeo, hullMat);
+        rightExhaust.rotation.x = Math.PI / 2;
+        rightExhaust.position.set(0.4, 0, -3.1);
+        
+        const leftExhaust = new THREE.Mesh(exhaustGeo, hullMat);
+        leftExhaust.rotation.x = Math.PI / 2;
+        leftExhaust.position.set(-0.4, 0, -3.1);
+
+        // 조립
+        jetGroup.add(body, nose, cockpit, rightWing, leftWing, rightTail, leftTail, rightExhaust, leftExhaust);
         scene.add(jetGroup);
 
-        const threatMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 0.5 });
-        const threat = new THREE.Mesh(new THREE.SphereGeometry(0.4, 16, 16), threatMaterial);
-        threat.position.set(0, 0, -50);
-        threat.visible = false;
-        scene.add(threat);
-
-        const particlesGeo = new THREE.BufferGeometry();
-        const particlesCount = 1000;
-        const posArray = new Float32Array(particlesCount * 3);
-        for(let i = 0; i < particlesCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 100;
+        // 애프터버너 엔진 화염 파티클 시스템
+        const flameParticles = [];
+        const flameGeo = new THREE.PlaneGeometry(0.5, 0.5);
+        const flameMat = new THREE.MeshBasicMaterial({ color: 0x00aaff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending }); // 평소엔 푸른 화염
+        
+        for(let i=0; i<30; i++) {
+            const p = new THREE.Mesh(flameGeo, flameMat);
+            p.position.set((Math.random()-0.5)*0.8, (Math.random()-0.5)*0.8, -3.5 - Math.random()*2);
+            p.userData = { life: Math.random(), speed: 0.1 + Math.random()*0.1 };
+            jetGroup.add(p);
+            flameParticles.push(p);
         }
-        particlesGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        const particlesMat = new THREE.PointsMaterial({ size: 0.1, color: 0xaaaaaa });
-        const particles = new THREE.Points(particlesGeo, particlesMat);
-        scene.add(particles);
 
+        // ==========================================
+        // 🌐 속도감을 위한 지형 및 환경 (Environment)
+        // ==========================================
+        // 끝없이 움직이는 그리드 바닥
+        const gridHelper = new THREE.GridHelper(400, 100, 0x004400, 0x002200);
+        gridHelper.position.y = -20;
+        scene.add(gridHelper);
+
+        // 초고속 별/먼지 파티클
+        const starsGeo = new THREE.BufferGeometry();
+        const starsCount = 2000;
+        const starsArray = new Float32Array(starsCount * 3);
+        for(let i = 0; i < starsCount * 3; i+=3) {
+            starsArray[i] = (Math.random() - 0.5) * 200;
+            starsArray[i+1] = (Math.random() - 0.5) * 100;
+            starsArray[i+2] = (Math.random() - 0.5) * 300;
+        }
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(starsArray, 3));
+        const starsMat = new THREE.PointsMaterial({ size: 0.2, color: 0xffffff, transparent: true, opacity: 0.6 });
+        const stars = new THREE.Points(starsGeo, starsMat);
+        scene.add(stars);
+
+        // ==========================================
+        // 🚀 위기 상황 (미사일 & 플레어 시스템)
+        // ==========================================
+        const missiles = [];
+        const flares = [];
         let isAlert = false;
+        
+        // 플레어(기만체) 생성 함수
+        function spawnFlare() {
+            const flareGeo = new THREE.SphereGeometry(0.2, 8, 8);
+            const flareMat = new THREE.MeshBasicMaterial({ color: 0xffffbb });
+            const flare = new THREE.Mesh(flareGeo, flareMat);
+            // 전투기 엉덩이에서 발사
+            flare.position.copy(jetGroup.position);
+            flare.position.z -= 3;
+            // 떨어지는 방향/속도
+            flare.userData = { 
+                vx: (Math.random() - 0.5) * 0.5, 
+                vy: -0.2 - Math.random()*0.2, 
+                vz: -0.5,
+                life: 1.0 
+            };
+            scene.add(flare);
+            flares.push(flare);
+        }
+
+        // 적 미사일 생성 함수
+        function spawnMissile() {
+            const mGeo = new THREE.CylinderGeometry(0.1, 0.1, 2, 8);
+            mGeo.rotateX(Math.PI/2);
+            const mMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const missile = new THREE.Mesh(mGeo, mMat);
+            // 저 멀리서 전투기를 향해 생성
+            missile.position.set((Math.random()-0.5)*40, (Math.random()-0.5)*20, -200);
+            scene.add(missile);
+            missiles.push(missile);
+        }
+
+        // ==========================================
+        // 🎬 애니메이션 및 물리 엔진 루프
+        // ==========================================
+        let clock = new THREE.Clock();
+        let targetRoll = 0;
+        let targetPitch = 0;
+        let shakeIntensity = 0;
 
         function animate() {
             requestAnimationFrame(animate);
-            particles.position.z -= 0.5;
-            if(particles.position.z < -20) particles.position.z = 20;
-            jetGroup.rotation.z = Math.sin(Date.now() * 0.001) * 0.1;
-            jetGroup.position.y = Math.sin(Date.now() * 0.002) * 0.2;
-            if (isAlert) {
-                alertLight.intensity = (Math.sin(Date.now() * 0.01) + 1) * 20;
-                if(threat.position.z < -5) threat.position.z += 0.25;
-                camera.position.x = (Math.random() - 0.5) * 0.4;
-                camera.position.y = 3 + (Math.random() - 0.5) * 0.4;
-            } else {
-                alertLight.intensity = 0;
-                camera.position.x = 0;
+            let time = clock.getElapsedTime();
+            let delta = clock.getDelta();
+
+            // 1. 지형 스크롤 (엄청난 속도감)
+            let speed = isAlert ? 3.0 : 0.8;
+            gridHelper.position.z += speed;
+            if (gridHelper.position.z > 20) gridHelper.position.z = 0;
+            
+            // 2. 파티클 스크롤
+            const posAttr = stars.geometry.attributes.position;
+            for(let i=0; i<starsCount; i++) {
+                let z = posAttr.getZ(i) + speed * 2;
+                if(z > 50) z = -250;
+                posAttr.setZ(i, z);
             }
+            posAttr.needsUpdate = true;
+
+            // 3. 엔진 불꽃 애니메이션
+            flameMat.color.setHex(isAlert ? 0xff3300 : 0x00aaff); // 위험시 붉은 화염(애프터버너)
+            flameParticles.forEach(p => {
+                p.userData.life -= p.userData.speed;
+                if(p.userData.life <= 0) {
+                    p.userData.life = 1;
+                    p.position.set((Math.random()-0.5)*1.2, (Math.random()-0.5)*1.2, -3.5);
+                }
+                p.position.z -= 0.1;
+                p.scale.setScalar(p.userData.life * (isAlert ? 2.5 : 1.0));
+                p.material.opacity = p.userData.life;
+            });
+
+            // 4. 전투기 기동 로직 (Evasive Maneuvers)
+            if (isAlert) {
+                // 극한의 회피 기동 (무작위로 목표 각도 변경)
+                if (Math.random() < 0.03) targetRoll = (Math.random() - 0.5) * Math.PI * 2.5; // 배럴 롤
+                if (Math.random() < 0.05) targetPitch = (Math.random() - 0.5) * Math.PI * 0.6; // 급상승/하강
+                
+                // 가끔 플레어 사출
+                if (Math.random() < 0.1) spawnFlare();
+                
+                // 가끔 적 미사일 생성
+                if (Math.random() < 0.05) spawnMissile();
+
+                // 붉은 조명 및 블룸 폭주
+                alertLight.intensity = (Math.sin(time * 15) + 1) * 50;
+                bloomPass.strength = 1.5 + Math.sin(time * 20) * 0.5;
+                shakeIntensity = 0.5;
+                overlay.style.opacity = Math.abs(Math.sin(time * 10)) * 0.5;
+            } else {
+                // 평상시 부드러운 비행
+                targetRoll = Math.sin(time * 0.8) * 0.2;
+                targetPitch = Math.sin(time * 0.5) * 0.1;
+                alertLight.intensity = 0;
+                bloomPass.strength = 0.8;
+                shakeIntensity = 0;
+                overlay.style.opacity = 0;
+            }
+
+            // 부드러운 회전 보간(Lerp)
+            jetGroup.rotation.z = THREE.MathUtils.lerp(jetGroup.rotation.z, targetRoll, 0.05);
+            jetGroup.rotation.x = THREE.MathUtils.lerp(jetGroup.rotation.x, targetPitch, 0.05);
+            
+            // 상하 부양감
+            jetGroup.position.y = Math.sin(time * 2) * 0.5;
+
+            // 5. 미사일 물리 계산
+            for(let i = missiles.length - 1; i >= 0; i--) {
+                let m = missiles[i];
+                m.position.z += 5; // 전투기 쪽으로 초고속 돌진
+                // 전투기를 향해 유도 로직 살짝
+                m.position.x = THREE.MathUtils.lerp(m.position.x, jetGroup.position.x, 0.02);
+                m.position.y = THREE.MathUtils.lerp(m.position.y, jetGroup.position.y, 0.02);
+                
+                if(m.position.z > 20) {
+                    scene.remove(m);
+                    missiles.splice(i, 1);
+                }
+            }
+
+            // 6. 플레어 물리 계산
+            for(let i = flares.length - 1; i >= 0; i--) {
+                let f = flares[i];
+                f.position.x += f.userData.vx;
+                f.position.y += f.userData.vy;
+                f.position.z += f.userData.vz;
+                f.userData.life -= 0.02;
+                f.scale.setScalar(f.userData.life);
+                if(f.userData.life <= 0) {
+                    scene.remove(f);
+                    flares.splice(i, 1);
+                }
+            }
+
+            // 7. 극한의 카메라 쉐이크
+            camera.position.x = (Math.random() - 0.5) * shakeIntensity;
+            camera.position.y = 4 + (Math.random() - 0.5) * shakeIntensity;
+            
             controls.update();
-            renderer.render(scene, camera);
+            composer.render(); // renderer.render 대신 composer 사용 (블룸 효과)
         }
         animate();
 
@@ -149,11 +403,12 @@
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        // ----------------------------------------------------
-        // [2] Firebase 및 ChatGPT Apps Script 백엔드 연동
-        // ----------------------------------------------------
+        // ============================================================================
+        // [2] Firebase 및 ChatGPT 연동 비즈니스 로직 (기존 완벽 유지)
+        // ============================================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
@@ -170,28 +425,37 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        
         const aiResponseText = document.getElementById('ai-response');
+        const uiPanel = document.getElementById('main-ui');
         let currentScenario = "";
 
-        // Firebase 이메일 가입 및 로그인 기능
+        // --- Firebase 회원가입 / 로그인 ---
         document.getElementById('btnSignup').addEventListener('click', () => {
             createUserWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
-                .then(() => alert("등록 완료! 등록한 계정으로 로그인하세요."))
-                .catch(e => alert(e.message));
+                .then(() => alert("파일럿 생체 등록 완료. 로그인하십시오."))
+                .catch(e => alert("등록 에러: " + e.message));
         });
 
         document.getElementById('btnLogin').addEventListener('click', () => {
             signInWithEmailAndPassword(auth, document.getElementById('email').value, document.getElementById('password').value)
-                .catch(e => alert("로그인 실패: " + e.message));
+                .catch(e => alert("접속 거부: " + e.message));
         });
 
-        document.getElementById('btnLogout').addEventListener('click', () => signOut(auth));
+        // --- Firebase 로그아웃 ---
+        document.getElementById('btnLogout').addEventListener('click', () => {
+            signOut(auth).then(() => {
+                alert("로그아웃 완료. 기지로 무사히 귀환했습니다.");
+                resolveAlert();
+            }).catch(e => alert("로그아웃 에러: " + e.message));
+        });
 
+        // --- 인증 상태 옵저버 ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 document.getElementById('auth-section').style.display = 'none';
                 document.getElementById('app-section').style.display = 'block';
-                document.getElementById('user-info').innerText = `접속 코드네임: ${user.email}`;
+                document.getElementById('user-info').innerText = `인증된 조종사: ${user.email}`;
             } else {
                 document.getElementById('auth-section').style.display = 'block';
                 document.getElementById('app-section').style.display = 'none';
@@ -199,73 +463,77 @@
             }
         });
 
-        // 🔊 TTS (Text-to-Speech) 기능
+        // --- 🔊 TTS 기능 (음성 출력) ---
         function speakText(text) {
             window.speechSynthesis.cancel();
-            const u = new SpeechSynthesisUtterance("긴급 상황 발생. " + text);
+            const u = new SpeechSynthesisUtterance("경고. " + text);
             u.lang = 'ko-KR';
-            u.rate = 1.25;
-            u.pitch = 0.55;
+            u.rate = 1.3;
+            u.pitch = 0.4; // 낮고 다급한 기계음 톤
             window.speechSynthesis.speak(u);
         }
 
+        // --- 🚨 알람 및 연출 트리거 함수 ---
         function triggerAlert(message) {
             isAlert = true;
-            threat.visible = true;
-            threat.position.set((Math.random()-0.5)*8, (Math.random()-0.5)*5, -55);
-            aiResponseText.innerText = message;
-            aiResponseText.classList.add('warning-text');
+            uiPanel.classList.add('alert-mode'); // UI 빨갛게 변경
+            
+            aiResponseText.innerHTML = `<span class="warning-text">${message}</span>`;
             speakText(message);
         }
 
         function resolveAlert() {
             isAlert = false;
-            threat.visible = false;
-            aiResponseText.innerText = "비행 상태 정상. 목표 지점으로 순항 중.";
-            aiResponseText.classList.remove('warning-text');
+            uiPanel.classList.remove('alert-mode');
+            
+            // 생성된 위협들 제거
+            missiles.forEach(m => scene.remove(m));
+            missiles.length = 0;
+            
+            targetRoll = 0;
+            targetPitch = 0;
+            
+            aiResponseText.innerHTML = "위협 해제. 비행 궤도 정상. 목표 지점으로 순항 중.";
             document.getElementById('user-action').value = "";
         }
 
-        // 🌐 변경된 부분: OpenAI로 직접 요청하는 대신 Apps Script로 연동
+        // --- 🌐 ChatGPT API (Apps Script 우회) 호출 ---
         document.getElementById('btnStartMission').addEventListener('click', async () => {
             if (GAS_WEB_APP_URL.includes("---여기에")) {
-                return alert("먼저 코드 상단의 GAS_WEB_APP_URL 주소를 본인의 Apps Script 배포 주소로 변경해 주세요!");
+                return alert("코드 상단 GAS_WEB_APP_URL에 본인의 Apps Script 웹 앱 주소를 넣어주세요!");
             }
 
             document.getElementById('loading').style.display = 'block';
             resolveAlert();
 
-            const promptText = "너는 전투기 관제탑 시스템이야. 조종사에게 발생하는 극도로 위험한 상황(예: 미사일 록온, 엔진 화재, 미확인 기체 급습 등)을 전투기 영화 대사처럼 다급하고 짧게 딱 '1문장'으로 경고해줘.";
+            const promptText = "너는 전투기 관제탑(AWACS) 시스템이야. 조종사에게 발생하는 극도로 위험한 상황(예: 다수의 지대공 미사일 록온, 스텔스기 기습, 엔진 화재 등)을 전투기 영화 탑건 대사처럼 다급하고 짧게 딱 '1문장'으로 경고해줘.";
 
             try {
-                // 브라우저 단에서 키를 노출하지 않고 구글 웹 앱으로 POST 전달
                 const response = await fetch(GAS_WEB_APP_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'text/plain' // CORS 이슈 회회를 위해 text/plain을 권장합니다.
-                    },
+                    headers: { 'Content-Type': 'text/plain' },
                     body: JSON.stringify({ prompt: promptText })
                 });
 
                 const data = await response.json();
-                
                 if (data.error) throw new Error(data.error);
 
-                // Apps Script가 OpenAI 응답을 그대로 중계하므로 파싱 구조는 동일합니다.
                 currentScenario = data.choices[0].message.content;
                 triggerAlert(currentScenario);
 
             } catch (error) {
-                aiResponseText.innerText = "시스템 통신 장애: " + error.message;
+                aiResponseText.innerHTML = `<span style="color:red">통신 위성 장애 발생: ${error.message}</span>`;
             } finally {
                 document.getElementById('loading').style.display = 'none';
             }
         });
 
-        // Firebase Firestore DB 로그 저장
+        // --- 💾 Firestore 로그 저장 (상황 대처 완료) ---
         document.getElementById('btnSaveLog').addEventListener('click', async () => {
             const userAction = document.getElementById('user-action').value;
-            if (!isAlert || !userAction) return alert("상황이 없거나 조종사 대처 행동이 공백입니다.");
+            if (!isAlert) return alert("현재 위협이 없습니다. 비행에 집중하십시오.");
+            if (!userAction) return alert("대처 행동을 입력해야 상황을 돌파할 수 있습니다!");
+            
             try {
                 await addDoc(collection(db, "flight_logs"), {
                     pilot: auth.currentUser.email,
@@ -273,10 +541,11 @@
                     action: userAction,
                     timestamp: new Date()
                 });
-                alert("대처 성공 로그가 'siuuuuuu' 데이터베이스 서버에 기록되었습니다!");
-                resolveAlert();
+                alert(`블랙박스 기록 완료.\n입력하신 조치[${userAction}]로 위협을 회피했습니다!`);
+                speakText("위협 회피 성공. 생환을 환영합니다, 파일럿.");
+                resolveAlert(); // 상황 종류 시 3D 시뮬레이션 원상복구
             } catch (error) {
-                alert("서버 전송 실패: " + error.message);
+                alert("블랙박스 서버 전송 실패: " + error.message);
             }
         });
     </script>
